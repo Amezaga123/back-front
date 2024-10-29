@@ -20,6 +20,15 @@ const userService = {
             throw error;
         }
     },
+    updateUser: async (id, user) => {
+        try {
+            await axios.put(`${apiUrl}/${id}`, user);
+        } catch (error) {
+            console.error('Erro ao atualizar usuário:', error);
+            throw error;
+        }
+    },
+    
 };
 
 export default userService;

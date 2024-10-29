@@ -1,55 +1,116 @@
-// src/components/UsuarioLista.js
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import userService from '../services/userService';
 
-const UsuarioLista = () => {
-    const [usuarios, setUsuarios] = useState([]);
-    const [error, setError] = useState('');
+function UsuarioLista() {
+    const [users, setUsers] = useState([]);
+    const [editingUserId, setEditingUserId] = useState(null);
+    const [editData, setEditData] = useState({ nome: '', email: '', cpf: '' });
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchUsuarios = async () => {
+        const fetchUsers = async () => {
             try {
-                const response = await axios.get('http://localhost:3000/api/users'); // Ajuste a URL conforme necessário
-                setUsuarios(response.data);
-            } catch (error) {
+                const usersList = await userService.getUsers();
+                setUsers(usersList);
+            } catch (err) {
                 setError('Erro ao carregar usuários');
-                console.error(error);
+                console.error(err);
             }
         };
-
-        fetchUsuarios();
+        fetchUsers();
     }, []);
 
-    if (error) {
-        return <div className="alert alert-danger">{error}</div>;
-    }
+    const handleEditClick = (user) => {
+        setEditingUserId(user.id);
+        setEditData({ nome: user.nome, email: user.email, cpf: user.cpf });
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setEditData((prevData) => ({ ...prevData, [name]: value }));
+    };
+
+    const handleUpdateSubmit = async (userId) => {
+        try {
+            await userService.updateUser(userId, editData);
+            setUsers((prevUsers) => prevUsers.map((user) => (user.id === userId ? { ...user, ...editData } : user)));
+            setEditingUserId(null);
+        } catch (err) {
+            setError('Erro ao atualizar usuário');
+            console.error(err);
+        }
+    };
 
     return (
-        <div>
-            {usuarios.length === 0 ? (
-                <div className="alert alert-warning">Nenhum usuário encontrado.</div>
+        <div className="container mt-5">
+            <h2>Lista de Usuários</h2>
+            {error && <p className="text-danger">{error}</p>}
+            {users.length === 0 ? (
+                <p>Nenhum usuário encontrado.</p>
             ) : (
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Email</th>
-                            <th>CPF</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {usuarios.map(usuario => (
-                            <tr key={usuario.id}>
-                                <td>{usuario.nome}</td>
-                                <td>{usuario.email}</td>
-                                <td>{usuario.cpf}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                <ul className="list-group">
+                    {users.map((user) => (
+                        <li key={user.id} className="list-group-item d-flex justify-content-between align-items-center">
+                            {editingUserId === user.id ? (
+                                <div className="w-100">
+                                    <input
+                                        type="text"
+                                        name="nome"
+                                        value={editData.nome}
+                                        onChange={handleInputChange}
+                                        placeholder="Nome"
+                                        className="form-control mb-2"
+                                    />
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        value={editData.email}
+                                        onChange={handleInputChange}
+                                        placeholder="Email"
+                                        className="form-control mb-2"
+                                    />
+                                    <input
+                                        type="text"
+                                        name="cpf"
+                                        value={editData.cpf}
+                                        onChange={handleInputChange}
+                                        placeholder="CPF"
+                                        className="form-control mb-2"
+                                    />
+                                    <button
+                                        className="btn btn-success"
+                                        onClick={() => handleUpdateSubmit(user.id)}
+                                    >
+                                        Salvar
+                                    </button>
+                                    <button
+                                        className="btn btn-secondary ms-2"
+                                        onClick={() => setEditingUserId(null)}
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    <div>
+                                        <strong>Nome:</strong> {user.nome} <br />
+                                        <strong>Email:</strong> {user.email} <br />
+                                        <strong>CPF:</strong> {user.cpf}
+                                    </div>
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={() => handleEditClick(user)}
+                                    >
+                                        Atualizar
+                                    </button>
+                                </>
+                            )}
+                        </li>
+                    ))}
+                </ul>
             )}
         </div>
     );
-};
+}
 
 export default UsuarioLista;
